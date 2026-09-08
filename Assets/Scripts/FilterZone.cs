@@ -20,7 +20,7 @@ public class FilterZone : MonoBehaviour
     [Tooltip("Tipo de contaminante que este filtro elimina")]
     public ContaminantType filterType = ContaminantType.TypeA;
 
-    [Header("Feedback visual")]
+    [Header("Feedback visual – Colores")]
     [Tooltip("Color normal del filtro en reposo")]
     public Color idleColor    = new Color(0.8f, 0.8f, 0.8f, 0.4f);
 
@@ -36,6 +36,22 @@ public class FilterZone : MonoBehaviour
     [Tooltip("Duración del flash de éxito/fallo en segundos")]
     public float flashDuration = 0.25f;
 
+    [Header("Feedback visual – Luces")]
+    [Tooltip("Primera luz que representa el estado del filtro (asignar desde el Inspector)")]
+    public Light filterLight1;
+
+    [Tooltip("Segunda luz que representa el estado del filtro (asignar desde el Inspector)")]
+    public Light filterLight2;
+
+    [Tooltip("Intensidad de la luz en estado idle (0 = apagada)")]
+    public float idleLightIntensity    = 0f;
+
+    [Tooltip("Intensidad de la luz cuando hay un contaminante correcto dentro")]
+    public float alertLightIntensity   = 2.5f;
+
+    [Tooltip("Intensidad de la luz en el flash de éxito/fallo")]
+    public float flashLightIntensity   = 5f;
+
     // ── Estado interno ─────────────────────────────────────────────────────
     private Contaminant _contaminantInZone = null;
 
@@ -43,6 +59,9 @@ public class FilterZone : MonoBehaviour
     private Material _material;
     private float    _flashTimer = 0f;
     private bool     _isFlashing = false;
+
+    // Luces
+    private Light[] _lights;
 
     // ══════════════════════════════════════════════════════════════════════
     // Unity lifecycle
@@ -57,6 +76,15 @@ public class FilterZone : MonoBehaviour
             _renderer.material = _material;
             SetColor(idleColor);
         }
+
+        // Construir el array de luces con las que estén asignadas
+        var lightList = new System.Collections.Generic.List<Light>();
+        if (filterLight1 != null) lightList.Add(filterLight1);
+        if (filterLight2 != null) lightList.Add(filterLight2);
+        _lights = lightList.ToArray();
+
+        // Estado inicial de las luces
+        SetLights(idleColor, idleLightIntensity);
 
         var col = GetComponent<Collider>();
         if (col != null && !col.isTrigger)
@@ -111,7 +139,7 @@ public class FilterZone : MonoBehaviour
         {
             _contaminantInZone = null;
             if (!_isFlashing)
-                SetColor(idleColor);
+                UpdateIdleColor();  // resetea color Y luces
         }
     }
 
@@ -156,12 +184,23 @@ public class FilterZone : MonoBehaviour
 
         bool correctTypeInZone = _contaminantInZone != null &&
                                  _contaminantInZone.type == filterType;
-        SetColor(correctTypeInZone ? alertColor : idleColor);
+
+        if (correctTypeInZone)
+        {
+            SetColor(alertColor);
+            SetLights(alertColor, alertLightIntensity);
+        }
+        else
+        {
+            SetColor(idleColor);
+            SetLights(idleColor, idleLightIntensity);
+        }
     }
 
     private void Flash(Color color)
     {
         SetColor(color);
+        SetLights(color, flashLightIntensity);
         _flashTimer = flashDuration;
         _isFlashing = true;
     }
@@ -170,6 +209,21 @@ public class FilterZone : MonoBehaviour
     {
         if (_material != null)
             _material.color = color;
+    }
+
+    /// <summary>
+    /// Aplica color e intensidad a todas las luces asignadas a este filtro.
+    /// </summary>
+    private void SetLights(Color color, float intensity)
+    {
+        if (_lights == null) return;
+        foreach (var light in _lights)
+        {
+            if (light == null) continue;
+            light.color     = color;
+            light.intensity = intensity;
+            light.enabled   = intensity > 0f;
+        }
     }
 
     // ══════════════════════════════════════════════════════════════════════
