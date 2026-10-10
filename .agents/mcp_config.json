@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "unity": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "mcpforunityserver",
+        "mcp-for-unity"
+      ],
+      "env": {
+        "PYTHONIOENCODING": "utf-8"
+      }
+    }
+  }
+}
